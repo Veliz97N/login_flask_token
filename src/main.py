@@ -17,8 +17,10 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = '33b9b3de94a42d19f47df7021954eaa8'
 MIGRATE = Migrate(app, db)
 db.init_app(app)
+jwt = JWTManager(app)
 CORS(app)
 setup_admin(app)
 
@@ -62,6 +64,9 @@ def add_new_user():
     if not email: return jsonify({"error":"email is required!"}), 400
     if not password: return jsonify({"error":"please enter a password"}), 400
 
+    user = User.query.filter_by(email=email).first()
+    if user: return jsonify({ "msg": "Email ya esta en uso."}), 400
+
     newUser = User()
     newUser.first_name = first_name
     newUser.last_name = last_name
@@ -71,15 +76,38 @@ def add_new_user():
 
     return jsonify(newUser.serialize()), 201
 
-# DELETE a user
-@app.route('/users/<int:id>', methods=['DELETE'])
-def delete_user(id):
-    user = User.query.get(id)
-    if not user: return jsonify({"status": False, "msg":"User doesn't exist"}), 404
-    user.delete()
-    return jsonify({"status": True, "msg":"User deleted"}), 200
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    email = request.json.get('email')
+    password = request.json.get('password')
+
+    user = User.query.filter_by(email=email, password=password).first()
+    if not user: 
+        return jsonify({ "msg": "Usuario/contraseña no se encuentran."}), 400
+
+    access_token = create_access_token(identity=user.email)
+
+    data = {
+        "token": access_token,
+        "user": user.serialize()
+    }
+
+    return jsonify(data), 200
+
+
+@app.route("/protected", methods=["GET"])
+@jwt_required()
+def protected():
+    # Access the identity of the current user with get_jwt_identity
+    current_user_id = get_jwt_identity()
+    user = User.filter.get(current_user_id)
+    
+    return jsonify({"id": user.id, "username": user.username }), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
     app.run(host='0.0.0.0', port=PORT, debug=False)
+
