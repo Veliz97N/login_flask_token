@@ -64,7 +64,7 @@ def add_new_user():
         data = {"error":"Se requiere un email"}
         return jsonify(data), 400
     if not password: 
-        data = {"error":"Ingrese una contraseña"}
+        data = {"error":"Ingrese una contraseñaa"}
         return jsonify(data), 400
 
     user = User.query.filter_by(email=email).first()
