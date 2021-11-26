@@ -41,7 +41,6 @@ def get_users():
 
     users = User.query.all()
     users = list(map(lambda user: user.serialize(), users))
-
     return jsonify(users), 200
 
 # GET a single user
@@ -61,11 +60,17 @@ def add_new_user():
     email = request.json.get('email')
     password = request.json.get('password')
 
-    if not email: return jsonify({"error":"email is required!"}), 400
-    if not password: return jsonify({"error":"please enter a password"}), 400
+    if not email: 
+        data = {"error":"Se requiere un email"}
+        return jsonify(data), 400
+    if not password: 
+        data = {"error":"Ingrese una contraseña"}
+        return jsonify(data), 400
 
     user = User.query.filter_by(email=email).first()
-    if user: return jsonify({ "msg": "Email ya esta en uso."}), 400
+    if user: 
+        data = { "error": "Email ya esta en uso."}
+        return jsonify(data), 400
 
     newUser = User()
     newUser.first_name = first_name
@@ -85,7 +90,8 @@ def login():
 
     user = User.query.filter_by(email=email, password=password).first()
     if not user: 
-        return jsonify({ "msg": "Usuario/contraseña no se encuentran."}), 400
+        data ={ "msg": "Usuario/contraseña no se encuentran."}
+        return jsonify(data), 400
 
     access_token = create_access_token(identity=user.email)
 
